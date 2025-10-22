@@ -7,7 +7,14 @@ tenacity>=8.0.0
 # Demo dependencies
 rich>=13.0.0
 
+# Benchmark integration dependencies
+datasets>=2.0.0
+pyyaml>=6.0.0
+
 # Optional for local model support (uncomment if needed)
 # transformers>=4.30.0
 # torch>=2.0.0
 # accelerate>=0.20.0
+
+# Optional benchmark dependencies (install separately if needed)
+# appworld>=0.1.0  # For AppWorld benchmark support
