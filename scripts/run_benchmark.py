@@ -288,7 +288,8 @@ def run_evaluation(
             generator=generator,
             reflector=reflector,
             curator=curator,
-            max_refinement_rounds=args.max_refinement_rounds
+            max_refinement_rounds=args.max_refinement_rounds,
+            enable_explainability=True  # Enable explainability tracking
         )
 
         # Run adaptation
@@ -307,13 +308,28 @@ def run_evaluation(
                 "curator_output": step.curator_output.raw if hasattr(step.curator_output, 'raw') else None
             })
 
-    return {
+        # Export explainability data if available
+        explainability_data = None
+        if hasattr(adapter, 'evolution_tracker') and adapter.evolution_tracker:
+            explainability_data = {
+                "evolution": adapter.evolution_tracker.get_timeline_data(),
+                "attribution": adapter.attribution_analyzer.generate_attribution_report() if hasattr(adapter, 'attribution_analyzer') and adapter.attribution_analyzer else None,
+                "interactions": adapter.interaction_tracer.generate_interaction_report() if hasattr(adapter, 'interaction_tracer') and adapter.interaction_tracer else None
+            }
+
+    result_dict = {
         "benchmark": args.benchmark,
         "model": args.model,
         "samples_evaluated": len(results),
         "results": results,
         "summary": compute_summary_metrics(results)
     }
+
+    # Add explainability data if available
+    if 'explainability_data' in locals() and explainability_data:
+        result_dict["explainability"] = explainability_data
+
+    return result_dict
 
 
 def compute_summary_metrics(results: List[Dict[str, Any]]) -> Dict[str, float]:

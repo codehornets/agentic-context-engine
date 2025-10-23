@@ -423,9 +423,9 @@ class EvolutionTracker:
 
         return patterns
 
-    def export_timeline(self, file_path: Union[str, Path]) -> None:
-        """Export complete evolution timeline to JSON file."""
-        timeline_data = {
+    def get_timeline_data(self) -> Dict[str, Any]:
+        """Get complete evolution timeline data."""
+        return {
             'snapshots': [asdict(snapshot) for snapshot in self.snapshots],
             'bullet_changes': [asdict(change) for change in self.bullet_changes],
             'strategy_evolutions': {
@@ -438,6 +438,9 @@ class EvolutionTracker:
             'export_timestamp': datetime.now(timezone.utc).isoformat()
         }
 
+    def export_timeline(self, file_path: Union[str, Path]) -> None:
+        """Export complete evolution timeline to JSON file."""
+        timeline_data = self.get_timeline_data()
         file_path = Path(file_path)
         file_path.parent.mkdir(parents=True, exist_ok=True)
 

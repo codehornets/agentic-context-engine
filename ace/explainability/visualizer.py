@@ -100,8 +100,10 @@ class ExplainabilityVisualizer:
             return None
 
         fig, axes = plt.subplots(2 if show_performance else 1, 1, figsize=self.figsize, sharex=True)
-        if not isinstance(axes, (list, tuple)):
+        if not isinstance(axes, (list, tuple, np.ndarray)):
             axes = [axes]
+        elif isinstance(axes, np.ndarray):
+            axes = axes.tolist() if axes.ndim > 0 else [axes]
 
         # Extract data
         epochs = [s.epoch for s in snapshots]
