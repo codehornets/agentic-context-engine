@@ -16,6 +16,7 @@ from .roles import (
     Reflector,
     ReflectorOutput,
 )
+from .explainability import EvolutionTracker, AttributionAnalyzer, InteractionTracer
 
 
 @dataclass
@@ -93,6 +94,11 @@ class AdapterStepResult:
     curator_output: CuratorOutput
     playbook_snapshot: str
 
+    # Explainability metadata
+    epoch: int = 0
+    step: int = 0
+    bullet_metadata: Dict[str, Dict] = field(default_factory=dict)
+
 
 class AdapterBase:
     """Shared orchestration logic for offline and online ACE adaptation."""
@@ -106,6 +112,7 @@ class AdapterBase:
         curator: Curator,
         max_refinement_rounds: int = 1,
         reflection_window: int = 3,
+        enable_explainability: bool = True,
     ) -> None:
         self.playbook = playbook or Playbook()
         self.generator = generator
@@ -114,6 +121,148 @@ class AdapterBase:
         self.max_refinement_rounds = max_refinement_rounds
         self.reflection_window = reflection_window
         self._recent_reflections: List[str] = []
+
+        # Explainability components
+        self.enable_explainability = enable_explainability
+        if enable_explainability:
+            self.evolution_tracker = EvolutionTracker()
+            self.attribution_analyzer = AttributionAnalyzer()
+            self.interaction_tracer = InteractionTracer()
+        else:
+            self.evolution_tracker = None
+            self.attribution_analyzer = None
+            self.interaction_tracer = None
+
+    # ------------------------------------------------------------------ #
+    # Explainability tracking methods
+    # ------------------------------------------------------------------ #
+    def _track_explainability_data(
+        self,
+        sample: Sample,
+        generator_output: GeneratorOutput,
+        environment_result: EnvironmentResult,
+        reflection: ReflectorOutput,
+        curator_output: CuratorOutput,
+        epoch: int,
+        step: int
+    ) -> None:
+        """Track data for explainability analysis."""
+        if not self.enable_explainability:
+            return
+
+        sample_id = sample.metadata.get('sample_id', f'sample_{step}')
+
+        # Track evolution
+        if self.evolution_tracker:
+            # Take snapshot before delta application
+            self.evolution_tracker.take_snapshot(
+                playbook=self.playbook,
+                epoch=epoch,
+                step=step,
+                performance_metrics=environment_result.metrics,
+                context=f"Processing sample {sample_id}"
+            )
+
+            # Record delta operations
+            self.evolution_tracker.record_delta(
+                delta=curator_output.delta,
+                epoch=epoch,
+                step=step,
+                context="after_curator"
+            )
+
+        # Track attribution
+        if self.attribution_analyzer:
+            # Determine success
+            success = None
+            if 'f1' in environment_result.metrics:
+                success = environment_result.metrics['f1'] > 0.5
+            elif any(v > 0.7 for v in environment_result.metrics.values()):
+                success = True
+
+            # Create bullet metadata
+            bullet_metadata = {}
+            for bullet in self.playbook.bullets():
+                bullet_metadata[bullet.id] = {
+                    'section': bullet.section,
+                    'content': bullet.content
+                }
+
+            self.attribution_analyzer.record_bullet_usage(
+                bullet_ids=generator_output.bullet_ids,
+                performance_metrics=environment_result.metrics,
+                sample_id=sample_id,
+                epoch=epoch,
+                step=step,
+                success=success,
+                bullet_metadata=bullet_metadata
+            )
+
+        # Track interactions
+        if self.interaction_tracer:
+            self.interaction_tracer.record_interaction(
+                sample_id=sample_id,
+                question=sample.question,
+                context=sample.context,
+                playbook_state=self.playbook.as_prompt(),
+                generator_output=generator_output,
+                reflector_output=reflection,
+                curator_output=curator_output,
+                environment_feedback=environment_result.feedback,
+                performance_metrics=environment_result.metrics,
+                epoch=epoch,
+                step=step
+            )
+
+    def get_explainability_data(self) -> Dict[str, Any]:
+        """Get all explainability data collected during adaptation."""
+        if not self.enable_explainability:
+            return {}
+
+        data = {}
+
+        if self.evolution_tracker:
+            data['evolution'] = {
+                'summary': self.evolution_tracker.get_evolution_summary(),
+                'lifespans': self.evolution_tracker.analyze_strategy_lifespans(),
+                'patterns': self.evolution_tracker.identify_learning_patterns()
+            }
+
+        if self.attribution_analyzer:
+            data['attribution'] = self.attribution_analyzer.generate_attribution_report()
+
+        if self.interaction_tracer:
+            data['interactions'] = self.interaction_tracer.generate_interaction_report()
+
+        return data
+
+    def export_explainability_analysis(self, output_dir: str) -> Dict[str, str]:
+        """Export all explainability analysis to files."""
+        if not self.enable_explainability:
+            return {}
+
+        from pathlib import Path
+        output_path = Path(output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        exported_files = {}
+
+        if self.evolution_tracker:
+            evolution_file = output_path / "evolution_analysis.json"
+            self.evolution_tracker.export_timeline(evolution_file)
+            exported_files['evolution'] = str(evolution_file)
+
+        if self.attribution_analyzer:
+            attribution_file = output_path / "attribution_analysis.json"
+            self.attribution_analyzer.export_analysis(attribution_file)
+            exported_files['attribution'] = str(attribution_file)
+
+        if self.interaction_tracer:
+            interaction_file = output_path / "interaction_analysis.json"
+            self.interaction_tracer.export_traces(interaction_file)
+            exported_files['interactions'] = str(interaction_file)
+
+        return exported_files
 
     # ------------------------------------------------------------------ #
     def _reflection_context(self) -> str:
@@ -186,7 +335,28 @@ class AdapterBase:
                 epoch, total_epochs, step_index, total_steps
             ),
         )
+
+        # Track explainability data if enabled
+        if self.enable_explainability:
+            self._track_explainability_data(
+                sample, generator_output, env_result, reflection, curator_output,
+                epoch, step_index
+            )
+
         self.playbook.apply_delta(curator_output.delta)
+
+        # Create bullet metadata for explainability
+        bullet_metadata = {}
+        if self.enable_explainability:
+            for bullet in self.playbook.bullets():
+                bullet_metadata[bullet.id] = {
+                    'section': bullet.section,
+                    'content': bullet.content,
+                    'helpful': bullet.helpful,
+                    'harmful': bullet.harmful,
+                    'neutral': bullet.neutral
+                }
+
         return AdapterStepResult(
             sample=sample,
             generator_output=generator_output,
@@ -194,6 +364,9 @@ class AdapterBase:
             reflection=reflection,
             curator_output=curator_output,
             playbook_snapshot=self.playbook.as_prompt(),
+            epoch=epoch,
+            step=step_index,
+            bullet_metadata=bullet_metadata,
         )
 
 

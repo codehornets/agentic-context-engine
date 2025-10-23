@@ -20,6 +20,22 @@ from .adaptation import (
     AdapterStepResult,
 )
 
+# Import explainability components
+try:
+    from .explainability import (
+        EvolutionTracker,
+        AttributionAnalyzer,
+        InteractionTracer,
+        ExplainabilityVisualizer,
+    )
+    EXPLAINABILITY_AVAILABLE = True
+except ImportError:
+    EvolutionTracker = None
+    AttributionAnalyzer = None
+    InteractionTracer = None
+    ExplainabilityVisualizer = None
+    EXPLAINABILITY_AVAILABLE = False
+
 # Import production LLM clients if available
 try:
     from .llm_providers import LiteLLMClient
@@ -50,5 +66,10 @@ __all__ = [
     "TaskEnvironment",
     "EnvironmentResult",
     "AdapterStepResult",
+    "EvolutionTracker",
+    "AttributionAnalyzer",
+    "InteractionTracer",
+    "ExplainabilityVisualizer",
     "LITELLM_AVAILABLE",
+    "EXPLAINABILITY_AVAILABLE",
 ]
