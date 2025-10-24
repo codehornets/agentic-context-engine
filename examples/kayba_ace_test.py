@@ -24,6 +24,7 @@ from rich.panel import Panel
 
 from ace import Generator, Reflector, Curator, Playbook
 from ace.llm_providers import LiteLLMClient
+from ace.observability import configure_opik
 
 # Suppress LiteLLM debug messages
 import litellm
@@ -38,6 +39,17 @@ def main():
     console.print("[bold cyan]🌊 The Kayba Test - ACE Self-Learning Demo 🌊[/bold cyan]")
     console.print("[dim]Using Claude Opus 4.1[/dim]")
     console.print("=" * 60 + "\n")
+
+    # Configure Opik observability
+    integration = configure_opik(
+        project_name="kayba-test",
+        tags=["demo", "seahorse", "self-learning"]
+    )
+    status = "✓ Enabled" if integration.is_available() else "✗ Disabled"
+    console.print(f"[cyan]Opik Observability: {status}[/cyan]")
+    if integration.is_available():
+        console.print("[dim]View traces at: https://www.comet.com/[/dim]")
+    console.print()
 
     # Setup - Claude Opus 4.1 for transparent reasoning
     client = LiteLLMClient(

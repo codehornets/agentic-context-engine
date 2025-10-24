@@ -16,7 +16,6 @@ from .roles import (
     Reflector,
     ReflectorOutput,
 )
-from .explainability import EvolutionTracker, AttributionAnalyzer, InteractionTracer
 
 
 @dataclass
@@ -94,10 +93,10 @@ class AdapterStepResult:
     curator_output: CuratorOutput
     playbook_snapshot: str
 
-    # Explainability metadata
+    # Observability metadata
     epoch: int = 0
     step: int = 0
-    bullet_metadata: Dict[str, Dict] = field(default_factory=dict)
+    performance_score: float = 0.0
 
 
 class AdapterBase:
@@ -112,7 +111,7 @@ class AdapterBase:
         curator: Curator,
         max_refinement_rounds: int = 1,
         reflection_window: int = 3,
-        enable_explainability: bool = True,
+        enable_observability: bool = True,
     ) -> None:
         self.playbook = playbook or Playbook()
         self.generator = generator
@@ -122,21 +121,22 @@ class AdapterBase:
         self.reflection_window = reflection_window
         self._recent_reflections: List[str] = []
 
-        # Explainability components
-        self.enable_explainability = enable_explainability
-        if enable_explainability:
-            self.evolution_tracker = EvolutionTracker()
-            self.attribution_analyzer = AttributionAnalyzer()
-            self.interaction_tracer = InteractionTracer()
+        # Observability integration
+        self.enable_observability = enable_observability
+        if enable_observability:
+            try:
+                from .observability import get_integration
+                self.opik_integration = get_integration()
+            except ImportError:
+                self.opik_integration = None
+                self.enable_observability = False
         else:
-            self.evolution_tracker = None
-            self.attribution_analyzer = None
-            self.interaction_tracer = None
+            self.opik_integration = None
 
     # ------------------------------------------------------------------ #
-    # Explainability tracking methods
+    # Observability tracking methods
     # ------------------------------------------------------------------ #
-    def _track_explainability_data(
+    def _track_observability_data(
         self,
         sample: Sample,
         generator_output: GeneratorOutput,
@@ -146,106 +146,43 @@ class AdapterBase:
         epoch: int,
         step: int
     ) -> None:
-        """Track data for explainability analysis."""
-        if not self.enable_explainability:
+        """Track data for observability analysis."""
+        if not self.enable_observability or not self.opik_integration:
             return
 
         sample_id = sample.metadata.get('sample_id', f'sample_{step}')
 
-        # Track evolution
-        if self.evolution_tracker:
-            # Take snapshot before delta application
-            self.evolution_tracker.take_snapshot(
-                playbook=self.playbook,
-                epoch=epoch,
-                step=step,
-                performance_metrics=environment_result.metrics,
-                context=f"Processing sample {sample_id}"
-            )
+        # Calculate performance score
+        performance_score = 0.0
+        if environment_result.metrics:
+            performance_score = sum(environment_result.metrics.values()) / len(environment_result.metrics)
 
-            # Record delta operations
-            self.evolution_tracker.record_delta(
-                delta=curator_output.delta,
-                epoch=epoch,
-                step=step,
-                context="after_curator"
-            )
-
-        # Track attribution
-        if self.attribution_analyzer:
-            # Determine success
-            success = None
-            if 'f1' in environment_result.metrics:
-                success = environment_result.metrics['f1'] > 0.5
-            elif any(v > 0.7 for v in environment_result.metrics.values()):
-                success = True
-
-            # Create bullet metadata
-            bullet_metadata = {}
-            for bullet in self.playbook.bullets():
-                bullet_metadata[bullet.id] = {
-                    'section': bullet.section,
-                    'content': bullet.content
-                }
-
-            self.attribution_analyzer.record_bullet_usage(
-                bullet_ids=generator_output.bullet_ids,
-                performance_metrics=environment_result.metrics,
-                sample_id=sample_id,
-                epoch=epoch,
-                step=step,
-                success=success,
-                bullet_metadata=bullet_metadata
-            )
-
-        # Track interactions
-        if self.interaction_tracer:
-            self.interaction_tracer.record_interaction(
-                sample_id=sample_id,
-                question=sample.question,
-                context=sample.context,
-                playbook_state=self.playbook.as_prompt(),
-                generator_output=generator_output,
-                reflector_output=reflection,
-                curator_output=curator_output,
-                environment_feedback=environment_result.feedback,
-                performance_metrics=environment_result.metrics,
-                epoch=epoch,
-                step=step
-            )
-
-    def get_explainability_data(self) -> Dict[str, Any]:
-        """Get all explainability data collected during adaptation."""
-        if not self.enable_explainability:
-            return {}
-
-        data = {}
-
-        if self.evolution_tracker:
-            data['evolution'] = {
-                'summary': self.evolution_tracker.get_evolution_summary(),
-                'lifespans': self.evolution_tracker.analyze_strategy_lifespans(),
-                'patterns': self.evolution_tracker.identify_learning_patterns()
+        # Track adaptation metrics with Opik
+        self.opik_integration.log_adaptation_metrics(
+            epoch=epoch,
+            step=step,
+            performance_score=performance_score,
+            bullet_count=len(self.playbook.bullets()),
+            successful_predictions=1 if performance_score > 0.5 else 0,
+            total_predictions=1,
+            metadata={
+                'sample_id': sample_id,
+                'question': sample.question[:100] + "..." if len(sample.question) > 100 else sample.question,
+                'bullet_ids_used': generator_output.bullet_ids,
+                'environment_metrics': environment_result.metrics
             }
+        )
 
-        if self.attribution_analyzer:
-            data['attribution'] = self.attribution_analyzer.generate_attribution_report()
-
-        if self.interaction_tracer:
-            data['interactions'] = self.interaction_tracer.generate_interaction_report()
-
-        return data
-
-    def export_explainability_analysis(self, output_dir: str) -> Dict[str, str]:
-        """Export all explainability analysis to files."""
-        if not self.enable_explainability:
+    def get_observability_data(self) -> Dict[str, Any]:
+        """Get observability data (if available through Opik integration)."""
+        if not self.enable_observability or not self.opik_integration:
             return {}
 
-        from pathlib import Path
-        output_path = Path(output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
-
-        exported_files = {}
+        return {
+            'observability_enabled': True,
+            'opik_available': self.opik_integration.is_available(),
+            'playbook_stats': self.playbook.stats()
+        }
 
         if self.evolution_tracker:
             evolution_file = output_path / "evolution_analysis.json"
@@ -336,9 +273,9 @@ class AdapterBase:
             ),
         )
 
-        # Track explainability data if enabled
-        if self.enable_explainability:
-            self._track_explainability_data(
+        # Track observability data if enabled
+        if self.enable_observability:
+            self._track_observability_data(
                 sample, generator_output, env_result, reflection, curator_output,
                 epoch, step_index
             )

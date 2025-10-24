@@ -91,6 +91,22 @@ class Playbook:
         if bullet is None:
             return None
         bullet.tag(tag, increment=increment)
+
+        # Log bullet evolution to Opik
+        try:
+            from .observability import get_integration
+            integration = get_integration()
+            integration.log_bullet_evolution(
+                bullet_id=bullet_id,
+                bullet_content=bullet.content,
+                helpful_count=bullet.helpful,
+                harmful_count=bullet.harmful,
+                neutral_count=bullet.neutral,
+                section=bullet.section
+            )
+        except Exception:
+            pass  # Graceful degradation if observability unavailable
+
         return bullet
 
     def remove_bullet(self, bullet_id: str) -> None:
@@ -192,8 +208,37 @@ class Playbook:
     # Delta application
     # ------------------------------------------------------------------ #
     def apply_delta(self, delta: DeltaBatch) -> None:
+        bullets_before = len(self._bullets)
+
         for operation in delta.operations:
             self._apply_operation(operation)
+
+        bullets_after = len(self._bullets)
+
+        # Log playbook update to Opik
+        try:
+            from .observability import get_integration
+            integration = get_integration()
+
+            # Count operation types
+            add_ops = sum(1 for op in delta.operations if op.type.upper() == "ADD")
+            update_ops = sum(1 for op in delta.operations if op.type.upper() == "UPDATE")
+            remove_ops = sum(1 for op in delta.operations if op.type.upper() == "REMOVE")
+
+            integration.log_playbook_update(
+                operation_type="delta_batch",
+                bullets_added=add_ops,
+                bullets_updated=update_ops,
+                bullets_removed=remove_ops,
+                total_bullets=bullets_after,
+                metadata={
+                    "operations_count": len(delta.operations),
+                    "bullets_before": bullets_before,
+                    "bullets_after": bullets_after
+                }
+            )
+        except Exception:
+            pass  # Graceful degradation if observability unavailable
 
     def _apply_operation(self, operation: DeltaOperation) -> None:
         op_type = operation.type.upper()

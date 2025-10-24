@@ -98,6 +98,52 @@ class Generator:
         reflection: Optional[str] = None,
         **kwargs: Any,
     ) -> GeneratorOutput:
+        # Apply Opik tracing
+        try:
+            from .observability.tracers import track_role
+            return self._tracked_generate(
+                question=question,
+                context=context,
+                playbook=playbook,
+                reflection=reflection,
+                **kwargs
+            )
+        except ImportError:
+            return self._generate_impl(
+                question=question,
+                context=context,
+                playbook=playbook,
+                reflection=reflection,
+                **kwargs
+            )
+
+    @track_role(role_name="Generator")
+    def _tracked_generate(
+        self,
+        *,
+        question: str,
+        context: Optional[str],
+        playbook: Playbook,
+        reflection: Optional[str] = None,
+        **kwargs: Any,
+    ) -> GeneratorOutput:
+        return self._generate_impl(
+            question=question,
+            context=context,
+            playbook=playbook,
+            reflection=reflection,
+            **kwargs
+        )
+
+    def _generate_impl(
+        self,
+        *,
+        question: str,
+        context: Optional[str],
+        playbook: Playbook,
+        reflection: Optional[str] = None,
+        **kwargs: Any,
+    ) -> GeneratorOutput:
         """
         Generate an answer using the playbook strategies.
 
@@ -205,6 +251,62 @@ class Reflector:
         self.max_retries = max_retries
 
     def reflect(
+        self,
+        *,
+        question: str,
+        context: Optional[str],
+        generator_trajectory: str,
+        final_answer: str,
+        execution_feedback: str,
+        playbook: Playbook,
+        **kwargs: Any,
+    ) -> ReflectorOutput:
+        # Apply Opik tracing
+        try:
+            from .observability.tracers import track_role
+            return self._tracked_reflect(
+                question=question,
+                context=context,
+                generator_trajectory=generator_trajectory,
+                final_answer=final_answer,
+                execution_feedback=execution_feedback,
+                playbook=playbook,
+                **kwargs
+            )
+        except ImportError:
+            return self._reflect_impl(
+                question=question,
+                context=context,
+                generator_trajectory=generator_trajectory,
+                final_answer=final_answer,
+                execution_feedback=execution_feedback,
+                playbook=playbook,
+                **kwargs
+            )
+
+    @track_role(role_name="Reflector")
+    def _tracked_reflect(
+        self,
+        *,
+        question: str,
+        context: Optional[str],
+        generator_trajectory: str,
+        final_answer: str,
+        execution_feedback: str,
+        playbook: Playbook,
+        **kwargs: Any,
+    ) -> ReflectorOutput:
+        return self._reflect_impl(
+            question=question,
+            context=context,
+            generator_trajectory=generator_trajectory,
+            final_answer=final_answer,
+            execution_feedback=execution_feedback,
+            playbook=playbook,
+            **kwargs
+        )
+
+    def _reflect_impl(
         self,
         *,
         question: str,
@@ -340,6 +442,52 @@ class Curator:
         self.max_retries = max_retries
 
     def curate(
+        self,
+        *,
+        reflection: ReflectorOutput,
+        playbook: Playbook,
+        question_context: str,
+        progress: str,
+        **kwargs: Any,
+    ) -> CuratorOutput:
+        # Apply Opik tracing
+        try:
+            from .observability.tracers import track_role
+            return self._tracked_curate(
+                reflection=reflection,
+                playbook=playbook,
+                question_context=question_context,
+                progress=progress,
+                **kwargs
+            )
+        except ImportError:
+            return self._curate_impl(
+                reflection=reflection,
+                playbook=playbook,
+                question_context=question_context,
+                progress=progress,
+                **kwargs
+            )
+
+    @track_role(role_name="Curator")
+    def _tracked_curate(
+        self,
+        *,
+        reflection: ReflectorOutput,
+        playbook: Playbook,
+        question_context: str,
+        progress: str,
+        **kwargs: Any,
+    ) -> CuratorOutput:
+        return self._curate_impl(
+            reflection=reflection,
+            playbook=playbook,
+            question_context=question_context,
+            progress=progress,
+            **kwargs
+        )
+
+    def _curate_impl(
         self,
         *,
         reflection: ReflectorOutput,

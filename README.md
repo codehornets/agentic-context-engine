@@ -77,6 +77,7 @@ ACE enables agents to learn from execution feedback: what works, what doesn't, a
 - 🧠 **Self-Improving**: Agents get smarter with each task
 - 🔄 **No Context Collapse**: Preserves valuable knowledge over time
 - 🚀 **100+ LLM Providers**: Works with OpenAI, Anthropic, Google, and more
+- 📊 **Production Observability**: Built-in Opik integration for enterprise monitoring
 
 ---
 
@@ -195,6 +196,29 @@ client = LiteLLMClient(
     fallbacks=["claude-3-haiku", "gpt-3.5-turbo"]
 )
 ```
+
+### Enterprise Observability with Opik
+
+ACE includes production-ready observability through [Opik](https://www.comet.com/site/products/opik/) integration:
+
+```python
+from ace.observability import configure_opik
+
+# Configure observability for your project
+configure_opik(
+    project_name="my-ace-project",
+    tags=["production", "experiment-v1"]
+)
+
+# All ACE operations are now automatically traced
+# View dashboards at https://www.comet.com/opik
+```
+
+Features:
+- 🔍 **Automatic Tracing**: All role interactions traced automatically
+- 📊 **Performance Metrics**: Track bullet effectiveness and learning progress
+- 🎯 **Real-time Dashboards**: Monitor ACE learning in production
+- 🔄 **Playbook Analytics**: Understand which strategies work best
 
 ---
 

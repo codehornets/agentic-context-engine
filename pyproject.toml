@@ -47,6 +47,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+observability = [
+    "opik>=1.8.0",
+]
 demos = [
     "rich>=13.0.0",
     "datasets>=2.0.0",
@@ -72,6 +75,7 @@ dev = [
     "git-changelog>=2.5.0",
 ]
 all = [
+    "opik>=1.8.0",
     "rich>=13.0.0",
     "datasets>=2.0.0",
     "pyyaml>=6.0.0",

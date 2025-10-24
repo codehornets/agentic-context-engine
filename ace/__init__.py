@@ -20,21 +20,13 @@ from .adaptation import (
     AdapterStepResult,
 )
 
-# Import explainability components
+# Import observability components
 try:
-    from .explainability import (
-        EvolutionTracker,
-        AttributionAnalyzer,
-        InteractionTracer,
-        ExplainabilityVisualizer,
-    )
-    EXPLAINABILITY_AVAILABLE = True
+    from .observability import OpikIntegration
+    OBSERVABILITY_AVAILABLE = True
 except ImportError:
-    EvolutionTracker = None
-    AttributionAnalyzer = None
-    InteractionTracer = None
-    ExplainabilityVisualizer = None
-    EXPLAINABILITY_AVAILABLE = False
+    OpikIntegration = None
+    OBSERVABILITY_AVAILABLE = False
 
 # Import production LLM clients if available
 try:
@@ -66,10 +58,7 @@ __all__ = [
     "TaskEnvironment",
     "EnvironmentResult",
     "AdapterStepResult",
-    "EvolutionTracker",
-    "AttributionAnalyzer",
-    "InteractionTracer",
-    "ExplainabilityVisualizer",
+    "OpikIntegration",
     "LITELLM_AVAILABLE",
-    "EXPLAINABILITY_AVAILABLE",
+    "OBSERVABILITY_AVAILABLE",
 ]
