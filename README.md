@@ -18,7 +18,7 @@ Star ⭐️ this repo if you find it useful!
 ---
 
 ## 🤖 LLM Quickstart
-1. Direct your favorite coding agent (Cursor, Claude Code, Codex, etc) to [Agents.md](Agents.md)
+1. Direct your favorite coding agent (Cursor, Claude Code, Codex, etc) to [Agents.md](https://github.com/kayba-ai/agentic-context-engine/blob/main/Agents.md?plain=1)
 2. Prompt away!
 
 ---
