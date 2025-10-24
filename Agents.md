@@ -2,7 +2,13 @@
 
 ### Installation
 ```bash
+# End users
 pip install ace-framework
+
+# Contributors (10-100x faster with UV)
+git clone https://github.com/kayba-ai/agentic-context-engine
+cd agentic-context-engine
+uv sync
 ```
 
 ### Set API Key

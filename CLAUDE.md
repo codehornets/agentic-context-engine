@@ -15,41 +15,53 @@ pip install ace-framework
 
 # Install with optional dependencies
 pip install ace-framework[all]           # All optional features
-pip install ace-framework[litellm]       # LiteLLM support
+pip install ace-framework[demos]         # Demo applications (browser automation)
 pip install ace-framework[langchain]     # LangChain integration
+pip install ace-framework[transformers]  # Local model support
 pip install ace-framework[dev]           # Development tools
 
-# Development installation (contributors)
+# Development installation (contributors) - UV Method (Recommended)
 git clone https://github.com/kayba-ai/agentic-context-engine
 cd agentic-context-engine
-pip install -r requirements.txt
+uv sync                                  # Install all dependencies (10-100x faster than pip)
+
+# Development installation (contributors) - Traditional Method
+git clone https://github.com/kayba-ai/agentic-context-engine
+cd agentic-context-engine
 pip install -e .
 ```
 
-### Dependency Management (pip-tools)
-This project uses pip-tools for automatic dependency locking to prevent version mismatch bugs.
+### Dependency Management (UV - Modern Approach)
+This project uses UV for ultra-fast dependency management with automatic locking.
 
 ```bash
-# Install dependencies (for users)
-pip install -r requirements.txt
+# Install dependencies (10-100x faster than pip)
+uv sync
 
-# Development workflow (for contributors)
-pip install pip-tools
+# Development workflow (contributors)
+uv add package-name              # Add new dependency
+uv remove package-name           # Remove dependency
+uv sync                          # Install/update all dependencies
+uv sync --locked                 # Use exact versions from uv.lock (for CI)
 
-# Update dependencies: edit requirements.in, then run:
-pip-compile requirements.in
+# Run scripts (auto-activates virtual environment)
+uv run python examples/simple_ace_example.py
+uv run pytest                    # Run tests
+uv run python -m ace.demos       # Run demos
 
-# Sync your environment to match requirements.txt exactly
-pip-sync requirements.txt
+# Update dependencies
+uv lock --upgrade                # Update all to latest compatible versions
+uv lock --upgrade-package requests  # Update specific package
 
-# Add new dependency: add to requirements.in, then compile
-echo "new-package>=1.0.0" >> requirements.in
-pip-compile requirements.in
+# Python version management
+uv python pin 3.12              # Pin Python version for project
+uv python install 3.11          # Install Python 3.11
 ```
 
 **Files:**
-- `requirements.in` - High-level dependencies (edit this)
-- `requirements.txt` - Locked dependencies with exact versions (auto-generated)
+- `pyproject.toml` - Project metadata and dependencies (PEP 621 standard)
+- `uv.lock` - Locked dependencies with exact versions (auto-generated, like package-lock.json)
+- `.python-version` - Pinned Python version for the project
 
 ### Running Tests
 ```bash
@@ -164,8 +176,8 @@ python scripts/explain_ace_performance.py
    - Use `ExplainabilityVisualizer` for visual analysis
 
 ## Python Requirements
-- Python 3.9+ (developed with 3.12)
-- Dependencies managed via pip-tools (see requirements.in/requirements.txt)
+- Python 3.11+ (developed with 3.12)
+- Dependencies managed via UV (see pyproject.toml/uv.lock)
 - Core: Pydantic, Python-dotenv
 - Production LLM: LiteLLM (optional but recommended)
 - Local models: transformers, torch (optional)
