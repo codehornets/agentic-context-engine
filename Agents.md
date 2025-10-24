@@ -1,7 +1,4 @@
-# 🤖 ACE Quickstart for AI Agents
-*Direct your favorite coding agent (Cursor, Claude, etc) to `Agents.md` and prompt away!*
-
-## 🚀 Quick Start
+## Quick Start
 
 ### Installation
 ```bash
@@ -36,7 +33,7 @@ print(result.final_answer)
 
 ---
 
-## 📚 Core Concepts
+## Core Concepts
 Source: ace/playbook.py, ace/roles.py, ace/delta.py
 
 ### Playbook
@@ -123,7 +120,7 @@ playbook.apply_delta(curator_output.delta)
 
 ---
 
-## 🎯 Complete Examples
+## Complete Examples
 
 ### Basic Adaptation
 ```python
@@ -295,7 +292,7 @@ visualizer.plot_bullet_impact()
 
 ---
 
-## 🌐 LLM Providers
+## LLM Providers
 Source: ace/llm_providers/
 
 ### OpenAI
@@ -385,7 +382,7 @@ python scripts/compare_baseline_vs_ace.py \
 
 ---
 
-## 🎨 API Reference
+## API Reference
 
 ### Core Classes
 
@@ -491,7 +488,7 @@ class EnvironmentResult:
 
 ---
 
-## 📝 Common Tasks
+## Common Tasks
 
 ### Task: Create a self-improving chatbot
 ```python
@@ -578,7 +575,7 @@ visualizer.plot_bullet_impact(save_path="strategy_impact.png")
 
 ---
 
-## 🔍 Troubleshooting
+## Troubleshooting
 
 ### API Key Issues
 ```python
@@ -627,7 +624,7 @@ results = adapter.run(
 
 ---
 
-## 📖 Examples Directory
+## Examples Directory
 
 Full working examples available at `examples/`:
 
@@ -641,7 +638,7 @@ Full working examples available at `examples/`:
 
 ---
 
-## 🚀 Next Steps
+## Next Steps
 
 1. **Install ACE**: `pip install ace-framework`
 2. **Run the Kayba Test**: `python examples/kayba_ace_test.py`
