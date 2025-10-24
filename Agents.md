@@ -2,8 +2,13 @@
 
 ### Installation
 ```bash
-# End users
+# Basic installation
 pip install ace-framework
+
+# With optional features
+pip install ace-framework[demos]         # Browser automation demos
+pip install ace-framework[transformers]  # Local model support
+pip install ace-framework[all]          # All features
 
 # Contributors (10-100x faster with UV)
 git clone https://github.com/kayba-ai/agentic-context-engine

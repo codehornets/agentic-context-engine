@@ -146,8 +146,14 @@ flowchart LR
 # Basic installation
 pip install ace-framework
 
+# With demo support (browser automation)
+pip install ace-framework[demos]
+
 # With LangChain support
 pip install ace-framework[langchain]
+
+# With local model support
+pip install ace-framework[transformers]
 
 # With all features
 pip install ace-framework[all]
