@@ -12,6 +12,18 @@ from .llm import LLMClient
 from .playbook import Playbook
 from .prompts import CURATOR_PROMPT, GENERATOR_PROMPT, REFLECTOR_PROMPT
 
+# Import Opik tracing with graceful degradation
+try:
+    from .observability.tracers import maybe_track
+except ImportError:
+    # Mock decorator if observability not available
+    def maybe_track(*args, **kwargs):
+        def decorator(func):
+            return func
+        if len(args) == 1 and callable(args[0]):
+            return args[0]
+        return decorator
+
 
 def _safe_json_loads(text: str) -> Dict[str, Any]:
     try:
@@ -89,7 +101,28 @@ class Generator:
         self.prompt_template = prompt_template
         self.max_retries = max_retries
 
+    @maybe_track(
+        name="generator_generate",
+        tags=["ace-framework", "role", "generator"]
+    )
     def generate(
+        self,
+        *,
+        question: str,
+        context: Optional[str],
+        playbook: Playbook,
+        reflection: Optional[str] = None,
+        **kwargs: Any,
+    ) -> GeneratorOutput:
+        return self._generate_impl(
+            question=question,
+            context=context,
+            playbook=playbook,
+            reflection=reflection,
+            **kwargs
+        )
+
+    def _generate_impl(
         self,
         *,
         question: str,
@@ -204,7 +237,30 @@ class Reflector:
         self.prompt_template = prompt_template
         self.max_retries = max_retries
 
+    @maybe_track(
+        name="reflector_reflect",
+        tags=["ace-framework", "role", "reflector"]
+    )
     def reflect(
+        self,
+        *,
+        question: str,
+        generator_output: GeneratorOutput,
+        playbook: Playbook,
+        ground_truth: Optional[str] = None,
+        feedback: Optional[str] = None,
+        **kwargs: Any,
+    ) -> ReflectorOutput:
+        return self._reflect_impl(
+            question=question,
+            generator_output=generator_output,
+            playbook=playbook,
+            ground_truth=ground_truth,
+            feedback=feedback,
+            **kwargs
+        )
+
+    def _reflect_impl(
         self,
         *,
         question: str,
@@ -339,7 +395,28 @@ class Curator:
         self.prompt_template = prompt_template
         self.max_retries = max_retries
 
+    @maybe_track(
+        name="curator_curate",
+        tags=["ace-framework", "role", "curator"]
+    )
     def curate(
+        self,
+        *,
+        reflection: ReflectorOutput,
+        playbook: Playbook,
+        question_context: str,
+        progress: str,
+        **kwargs: Any,
+    ) -> CuratorOutput:
+        return self._curate_impl(
+            reflection=reflection,
+            playbook=playbook,
+            question_context=question_context,
+            progress=progress,
+            **kwargs
+        )
+
+    def _curate_impl(
         self,
         *,
         reflection: ReflectorOutput,

@@ -8,30 +8,60 @@ This is an implementation scaffold for reproducing the Agentic Context Engineeri
 
 ## Development Commands
 
-### Dependency Management (pip-tools)
-This project uses pip-tools for automatic dependency locking to prevent version mismatch bugs.
+### Package Installation
+```bash
+# Install from PyPI (end users)
+pip install ace-framework
+
+# Install with optional dependencies
+pip install ace-framework[all]           # All optional features
+pip install ace-framework[demos]         # Demo applications (browser automation)
+pip install ace-framework[langchain]     # LangChain integration
+pip install ace-framework[transformers]  # Local model support
+pip install ace-framework[dev]           # Development tools
+
+# Development installation (contributors) - UV Method (Recommended)
+git clone https://github.com/kayba-ai/agentic-context-engine
+cd agentic-context-engine
+uv sync                                  # Install all dependencies (10-100x faster than pip)
+
+# Development installation (contributors) - Traditional Method
+git clone https://github.com/kayba-ai/agentic-context-engine
+cd agentic-context-engine
+pip install -e .
+```
+
+### Dependency Management (UV - Modern Approach)
+This project uses UV for ultra-fast dependency management with automatic locking.
 
 ```bash
-# Install dependencies (for users)
-pip install -r requirements.txt
+# Install dependencies (10-100x faster than pip)
+uv sync
 
-# Development workflow (for contributors)
-pip install pip-tools
+# Development workflow (contributors)
+uv add package-name              # Add new dependency
+uv remove package-name           # Remove dependency
+uv sync                          # Install/update all dependencies
+uv sync --locked                 # Use exact versions from uv.lock (for CI)
 
-# Update dependencies: edit requirements.in, then run:
-pip-compile requirements.in
+# Run scripts (auto-activates virtual environment)
+uv run python examples/simple_ace_example.py
+uv run pytest                    # Run tests
+uv run python -m ace.demos       # Run demos
 
-# Sync your environment to match requirements.txt exactly
-pip-sync requirements.txt
+# Update dependencies
+uv lock --upgrade                # Update all to latest compatible versions
+uv lock --upgrade-package requests  # Update specific package
 
-# Add new dependency: add to requirements.in, then compile
-echo "new-package>=1.0.0" >> requirements.in
-pip-compile requirements.in
+# Python version management
+uv python pin 3.12              # Pin Python version for project
+uv python install 3.11          # Install Python 3.11
 ```
 
 **Files:**
-- `requirements.in` - High-level dependencies (edit this)
-- `requirements.txt` - Locked dependencies with exact versions (auto-generated)
+- `pyproject.toml` - Project metadata and dependencies (PEP 621 standard)
+- `uv.lock` - Locked dependencies with exact versions (auto-generated, like package-lock.json)
+- `.python-version` - Pinned Python version for the project
 
 ### Running Tests
 ```bash
@@ -45,19 +75,36 @@ python -m unittest tests.test_adaptation
 python -m unittest discover -s tests -v
 ```
 
-### Running Example Scripts
+### Running Examples
 ```bash
-# Run the Kayba Test demo (seahorse emoji challenge)
+# Quick start with LiteLLM (requires API key)
+python examples/simple_ace_example.py
+
+# Kayba Test demo (seahorse emoji challenge)
 python examples/kayba_ace_test.py
 
-# Run questions with ACE adaptation (requires model weights)
+# Advanced examples
+python examples/quickstart_litellm.py
+python examples/langchain_example.py
+python examples/playbook_persistence.py
+
+# Compare prompt versions
+python examples/compare_v1_v2_prompts.py
+python examples/advanced_prompts_v2.py
+```
+
+### Development Scripts (Research Only)
+```bash
+# Note: These require local model weights and are not in PyPI package
 CUDA_VISIBLE_DEVICES=2,3 python scripts/run_questions.py
-
-# Run local adapter with Transformers model
 CUDA_VISIBLE_DEVICES=2,3 python scripts/run_local_adapter.py
-
-# Run direct questions without adaptation
 python scripts/run_questions_direct.py
+
+# Benchmarking
+python scripts/run_benchmark.py
+python scripts/compare_baseline_vs_ace.py
+python scripts/analyze_ace_results.py
+python scripts/explain_ace_performance.py
 ```
 
 ## Architecture
@@ -79,10 +126,29 @@ python scripts/run_questions_direct.py
 - `adaptation.py`: OfflineAdapter and OnlineAdapter orchestration loops
 - `llm.py`: LLMClient interface with DummyLLMClient and TransformersLLMClient
 - `prompts.py`: Default prompt templates for each role
+- `prompts_v2.py`: Enhanced prompt templates with improved performance
+- `llm_providers/`: Production LLM client implementations
+  - `litellm_client.py`: LiteLLM integration (100+ model providers)
+  - `langchain_client.py`: LangChain integration
+
+**ace/explainability/** - Explainability framework:
+- `evolution_tracker.py`: Track playbook evolution over time
+- `attribution_analyzer.py`: Analyze which bullets contribute to performance
+- `interaction_tracer.py`: Trace role interactions and dependencies
+- `visualizer.py`: Visualization tools for explainability analysis
+
+**benchmarks/** - Benchmark framework:
+- `base.py`: Base benchmark classes and interfaces
+- `environments.py`: Task environment implementations
+- `manager.py`: Benchmark execution and management
+- `processors.py`: Data processing utilities
+- `loaders/`: Dataset loaders for various benchmarks
 
 **tests/** - Test suite using unittest framework
 
-**scripts/** - Example usage and evaluation scripts
+**examples/** - Production-ready example scripts
+
+**scripts/** - Research and development scripts (not in PyPI package)
 
 ### Key Implementation Patterns
 
@@ -93,7 +159,9 @@ python scripts/run_questions_direct.py
 
 2. **LLM Integration**:
    - Implement `LLMClient` subclass for your model API
-   - TransformersLLMClient provided for local model deployment
+   - LiteLLMClient supports 100+ providers (OpenAI, Anthropic, Google, etc.)
+   - LangChainClient provides LangChain integration
+   - TransformersLLMClient for local model deployment
    - All roles share the same LLM instance
 
 3. **Task Environment**:
@@ -101,8 +169,16 @@ python scripts/run_questions_direct.py
    - Implement `evaluate()` to provide execution feedback
    - Return `EnvironmentResult` with feedback and optional ground truth
 
+4. **Explainability Integration**:
+   - Use `EvolutionTracker` to monitor playbook changes over time
+   - Use `AttributionAnalyzer` to identify high-impact bullets
+   - Use `InteractionTracer` to understand role dependencies
+   - Use `ExplainabilityVisualizer` for visual analysis
+
 ## Python Requirements
-- Python 3.9+ (developed with 3.12)
-- Dependencies managed via pip-tools (see requirements.in/requirements.txt)
-- Core: LiteLLM, Pydantic, Python-dotenv, Rich
-- Optional: transformers library for TransformersLLMClient
+- Python 3.11+ (developed with 3.12)
+- Dependencies managed via UV (see pyproject.toml/uv.lock)
+- Core: Pydantic, Python-dotenv
+- Production LLM: LiteLLM (optional but recommended)
+- Local models: transformers, torch (optional)
+- LangChain: langchain-litellm (optional)

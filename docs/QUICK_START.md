@@ -35,9 +35,23 @@ GOOGLE_API_KEY=your-key-here
 Create a file `my_first_ace.py`:
 
 ```python
-from ace import OfflineAdapter, Generator, Reflector, Curator
-from ace import LiteLLMClient, SimpleEnvironment
-from ace.types import Sample
+from ace import OfflineAdapter, Generator, Reflector, Curator, Playbook
+from ace import LiteLLMClient, Sample, TaskEnvironment, EnvironmentResult
+
+
+# Create a simple environment for evaluating answers
+class SimpleEnvironment(TaskEnvironment):
+    """Basic environment for testing - checks if ground truth appears in answer."""
+
+    def evaluate(self, sample, generator_output):
+        # Simple substring matching (case-insensitive)
+        correct = str(sample.ground_truth).lower() in str(generator_output.final_answer).lower()
+
+        return EnvironmentResult(
+            feedback="Correct!" if correct else "Incorrect",
+            ground_truth=sample.ground_truth,
+        )
+
 
 # Initialize the LLM client
 client = LiteLLMClient(model="gpt-4o-mini")  # or claude-3-haiku, gemini-pro, etc.

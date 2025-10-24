@@ -7,7 +7,7 @@ name = "ace-framework"
 version = "0.4.0"
 description = "Build self-improving AI agents that learn from experience"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
     {name = "Kayba.ai", email = "hello@kayba.ai"},
@@ -33,8 +33,6 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -42,27 +40,32 @@ classifiers = [
 ]
 
 dependencies = [
+    "litellm>=1.78.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    "tenacity>=8.0.0",
 ]
 
 [project.optional-dependencies]
-all = [
-    "litellm>=1.0.0",
-    "langchain-litellm>=0.2.0",
-    "transformers>=4.0.0",
-    "torch>=2.0.0",
+observability = [
+    "opik>=1.8.0",
 ]
-litellm = [
-    "litellm>=1.0.0",
+demos = [
+    "rich>=13.0.0",
+    "datasets>=2.0.0",
+    "pyyaml>=6.0.0",
+    "browser-use>=0.9.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.0.0",
+    "playwright>=1.40.0",
 ]
 langchain = [
     "langchain-litellm>=0.2.0",
-    "litellm>=1.0.0",
 ]
 transformers = [
-    "transformers>=4.0.0",
+    "transformers>=4.30.0",
     "torch>=2.0.0",
+    "accelerate>=0.20.0",
 ]
 dev = [
     "pytest>=7.0.0",
@@ -70,6 +73,20 @@ dev = [
     "black>=23.0.0",
     "mypy>=1.0.0",
     "git-changelog>=2.5.0",
+]
+all = [
+    "opik>=1.8.0",
+    "rich>=13.0.0",
+    "datasets>=2.0.0",
+    "pyyaml>=6.0.0",
+    "browser-use>=0.9.0",
+    "pandas>=2.0.0",
+    "openpyxl>=3.0.0",
+    "playwright>=1.40.0",
+    "langchain-litellm>=0.2.0",
+    "transformers>=4.30.0",
+    "torch>=2.0.0",
+    "accelerate>=0.20.0",
 ]
 
 [project.urls]
@@ -79,7 +96,7 @@ Repository = "https://github.com/Kayba-ai/agentic-context-engine"
 Issues = "https://github.com/Kayba-ai/agentic-context-engine/issues"
 
 [tool.setuptools]
-packages = ["ace", "ace.llm_providers"]
+packages = ["ace", "ace.llm_providers", "ace.observability"]
 
 [tool.setuptools.package-data]
 ace = ["py.typed"]

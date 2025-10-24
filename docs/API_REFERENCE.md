@@ -167,13 +167,30 @@ for task in tasks:
 
 ## Environments
 
-### SimpleEnvironment
+### Creating Environments
 
-Basic environment that compares output to ground truth.
+All environments should extend the `TaskEnvironment` base class.
+
+#### Simple Environment Example
+
+Basic environment that compares output to ground truth using substring matching:
 
 ```python
-from ace import SimpleEnvironment
+from ace import TaskEnvironment, EnvironmentResult
 
+class SimpleEnvironment(TaskEnvironment):
+    """Basic environment for testing - checks if ground truth appears in answer."""
+
+    def evaluate(self, sample, generator_output):
+        # Simple substring matching (case-insensitive)
+        correct = str(sample.ground_truth).lower() in str(generator_output.final_answer).lower()
+
+        return EnvironmentResult(
+            feedback="Correct!" if correct else "Incorrect",
+            ground_truth=sample.ground_truth,
+        )
+
+# Usage
 env = SimpleEnvironment()
 result = env.evaluate(sample, generator_output)
 ```

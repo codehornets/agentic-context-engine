@@ -93,6 +93,11 @@ class AdapterStepResult:
     curator_output: CuratorOutput
     playbook_snapshot: str
 
+    # Observability metadata
+    epoch: int = 0
+    step: int = 0
+    performance_score: float = 0.0
+
 
 class AdapterBase:
     """Shared orchestration logic for offline and online ACE adaptation."""
@@ -106,6 +111,7 @@ class AdapterBase:
         curator: Curator,
         max_refinement_rounds: int = 1,
         reflection_window: int = 3,
+        enable_observability: bool = True,
     ) -> None:
         self.playbook = playbook or Playbook()
         self.generator = generator
@@ -114,6 +120,86 @@ class AdapterBase:
         self.max_refinement_rounds = max_refinement_rounds
         self.reflection_window = reflection_window
         self._recent_reflections: List[str] = []
+
+        # Observability integration
+        self.enable_observability = enable_observability
+        if enable_observability:
+            try:
+                from .observability import get_integration
+                self.opik_integration = get_integration()
+            except ImportError:
+                self.opik_integration = None
+                self.enable_observability = False
+        else:
+            self.opik_integration = None
+
+    # ------------------------------------------------------------------ #
+    # Observability tracking methods
+    # ------------------------------------------------------------------ #
+    def _track_observability_data(
+        self,
+        sample: Sample,
+        generator_output: GeneratorOutput,
+        environment_result: EnvironmentResult,
+        reflection: ReflectorOutput,
+        curator_output: CuratorOutput,
+        epoch: int,
+        step: int
+    ) -> None:
+        """Track data for observability analysis."""
+        if not self.enable_observability or not self.opik_integration:
+            return
+
+        sample_id = sample.metadata.get('sample_id', f'sample_{step}')
+
+        # Calculate performance score
+        performance_score = 0.0
+        if environment_result.metrics:
+            performance_score = sum(environment_result.metrics.values()) / len(environment_result.metrics)
+
+        # Track adaptation metrics with Opik
+        self.opik_integration.log_adaptation_metrics(
+            epoch=epoch,
+            step=step,
+            performance_score=performance_score,
+            bullet_count=len(self.playbook.bullets()),
+            successful_predictions=1 if performance_score > 0.5 else 0,
+            total_predictions=1,
+            metadata={
+                'sample_id': sample_id,
+                'question': sample.question[:100] + "..." if len(sample.question) > 100 else sample.question,
+                'bullet_ids_used': generator_output.bullet_ids,
+                'environment_metrics': environment_result.metrics
+            }
+        )
+
+    def get_observability_data(self) -> Dict[str, Any]:
+        """Get observability data (if available through Opik integration)."""
+        if not self.enable_observability or not self.opik_integration:
+            return {}
+
+        return {
+            'observability_enabled': True,
+            'opik_available': self.opik_integration.is_available(),
+            'playbook_stats': self.playbook.stats()
+        }
+
+        if self.evolution_tracker:
+            evolution_file = output_path / "evolution_analysis.json"
+            self.evolution_tracker.export_timeline(evolution_file)
+            exported_files['evolution'] = str(evolution_file)
+
+        if self.attribution_analyzer:
+            attribution_file = output_path / "attribution_analysis.json"
+            self.attribution_analyzer.export_analysis(attribution_file)
+            exported_files['attribution'] = str(attribution_file)
+
+        if self.interaction_tracer:
+            interaction_file = output_path / "interaction_analysis.json"
+            self.interaction_tracer.export_traces(interaction_file)
+            exported_files['interactions'] = str(interaction_file)
+
+        return exported_files
 
     # ------------------------------------------------------------------ #
     def _reflection_context(self) -> str:
@@ -186,7 +272,28 @@ class AdapterBase:
                 epoch, total_epochs, step_index, total_steps
             ),
         )
+
+        # Track observability data if enabled
+        if self.enable_observability:
+            self._track_observability_data(
+                sample, generator_output, env_result, reflection, curator_output,
+                epoch, step_index
+            )
+
         self.playbook.apply_delta(curator_output.delta)
+
+        # Create bullet metadata for explainability
+        bullet_metadata = {}
+        if self.enable_explainability:
+            for bullet in self.playbook.bullets():
+                bullet_metadata[bullet.id] = {
+                    'section': bullet.section,
+                    'content': bullet.content,
+                    'helpful': bullet.helpful,
+                    'harmful': bullet.harmful,
+                    'neutral': bullet.neutral
+                }
+
         return AdapterStepResult(
             sample=sample,
             generator_output=generator_output,
@@ -194,6 +301,9 @@ class AdapterBase:
             reflection=reflection,
             curator_output=curator_output,
             playbook_snapshot=self.playbook.as_prompt(),
+            epoch=epoch,
+            step=step_index,
+            bullet_metadata=bullet_metadata,
         )
 
 

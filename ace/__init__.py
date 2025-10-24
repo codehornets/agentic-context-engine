@@ -20,6 +20,14 @@ from .adaptation import (
     AdapterStepResult,
 )
 
+# Import observability components
+try:
+    from .observability import OpikIntegration
+    OBSERVABILITY_AVAILABLE = True
+except ImportError:
+    OpikIntegration = None
+    OBSERVABILITY_AVAILABLE = False
+
 # Import production LLM clients if available
 try:
     from .llm_providers import LiteLLMClient
@@ -50,5 +58,7 @@ __all__ = [
     "TaskEnvironment",
     "EnvironmentResult",
     "AdapterStepResult",
+    "OpikIntegration",
     "LITELLM_AVAILABLE",
+    "OBSERVABILITY_AVAILABLE",
 ]

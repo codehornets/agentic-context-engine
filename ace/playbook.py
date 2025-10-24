@@ -49,6 +49,16 @@ class Playbook:
         self._sections: Dict[str, List[str]] = {}
         self._next_id = 0
 
+    def __repr__(self) -> str:
+        """Concise representation for debugging and object inspection."""
+        return f"Playbook(bullets={len(self._bullets)}, sections={list(self._sections.keys())})"
+
+    def __str__(self) -> str:
+        """Human-readable representation showing actual playbook content."""
+        if not self._bullets:
+            return "Playbook(empty)"
+        return self.as_prompt()
+
     # ------------------------------------------------------------------ #
     # CRUD utils
     # ------------------------------------------------------------------ #
@@ -91,6 +101,9 @@ class Playbook:
         if bullet is None:
             return None
         bullet.tag(tag, increment=increment)
+
+        # Opik tracing handles this automatically via @track decorator
+
         return bullet
 
     def remove_bullet(self, bullet_id: str) -> None:
@@ -192,8 +205,14 @@ class Playbook:
     # Delta application
     # ------------------------------------------------------------------ #
     def apply_delta(self, delta: DeltaBatch) -> None:
+        bullets_before = len(self._bullets)
+
         for operation in delta.operations:
             self._apply_operation(operation)
+
+        bullets_after = len(self._bullets)
+
+        # Opik tracing handles this automatically via @track decorator
 
     def _apply_operation(self, operation: DeltaOperation) -> None:
         op_type = operation.type.upper()

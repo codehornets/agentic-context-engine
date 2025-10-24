@@ -3,10 +3,10 @@
 # Agentic Context Engine (ACE) 
 
 ![GitHub stars](https://img.shields.io/github/stars/kayba-ai/agentic-context-engine?style=social)
-[![Discord](https://img.shields.io/discord/1428139409211129948?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/kHuccZmvtx)
+[![Discord](https://img.shields.io/discord/1429935408145236131?label=Discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/mqCqH7sTyK)
 [![Twitter Follow](https://img.shields.io/twitter/follow/kaybaai?style=social)](https://twitter.com/kaybaai)
 [![PyPI version](https://badge.fury.io/py/ace-framework.svg)](https://badge.fury.io/py/ace-framework)
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
 **AI agents that get smarter with every task 🧠**
@@ -17,7 +17,13 @@ Star ⭐️ this repo if you find it useful!
 
 ---
 
-## Quick Start
+## 🤖 LLM Quickstart
+1. Direct your favorite coding agent (Cursor, Claude Code, Codex, etc) to [Agents.md](https://github.com/kayba-ai/agentic-context-engine/blob/main/Agents.md?plain=1)
+2. Prompt away!
+
+---
+
+## ✋ Quick Start
 
 ### 1. Install
 
@@ -49,7 +55,7 @@ playbook = Playbook()
 
 # Now it can solve new problems with learned strategies
 result = generator.generate(
-    question="What is 7*8?",
+    question="Give me the seahorse emoji",
     context="",
     playbook=playbook
 )
@@ -71,6 +77,7 @@ ACE enables agents to learn from execution feedback: what works, what doesn't, a
 - 🧠 **Self-Improving**: Agents get smarter with each task
 - 🔄 **No Context Collapse**: Preserves valuable knowledge over time
 - 🚀 **100+ LLM Providers**: Works with OpenAI, Anthropic, Google, and more
+- 📊 **Production Observability**: Built-in Opik integration for enterprise monitoring
 
 ---
 
@@ -140,8 +147,14 @@ flowchart LR
 # Basic installation
 pip install ace-framework
 
+# With demo support (browser automation)
+pip install ace-framework[demos]
+
 # With LangChain support
 pip install ace-framework[langchain]
+
+# With local model support
+pip install ace-framework[transformers]
 
 # With all features
 pip install ace-framework[all]
@@ -149,10 +162,14 @@ pip install ace-framework[all]
 # Development
 pip install ace-framework[dev]
 
-# Development from source (contributors)
+# Development from source (contributors) - UV Method (10-100x faster)
 git clone https://github.com/kayba-ai/agentic-context-engine
 cd agentic-context-engine
-pip install -r requirements.txt
+uv sync
+
+# Development from source (contributors) - Traditional Method
+git clone https://github.com/kayba-ai/agentic-context-engine
+cd agentic-context-engine
 pip install -e .
 ```
 
@@ -180,6 +197,46 @@ client = LiteLLMClient(
 )
 ```
 
+### Observability with Opik
+
+ACE includes built-in Opik integration for production monitoring and debugging.
+
+#### Quick Start
+```bash
+# Install with Opik support
+pip install ace-framework opik
+
+# Set your Opik API key (or use local deployment)
+export OPIK_API_KEY="your-api-key"
+export OPIK_PROJECT_NAME="ace-project"
+```
+
+#### What Gets Tracked
+When Opik is available, ACE automatically logs:
+- **Generator**: Input questions, reasoning, and final answers
+- **Reflector**: Error analysis and bullet classifications
+- **Curator**: Playbook updates and delta operations
+- **Playbook Evolution**: Changes to strategies over time
+
+#### Viewing Traces
+```python
+# Opik tracing is automatic - just run your ACE code normally
+from ace import Generator, Reflector, Curator, Playbook
+from ace.llm_providers import LiteLLMClient
+
+# All role interactions are automatically tracked
+generator = Generator(llm_client)
+output = generator.generate(
+    question="What is 2+2?",
+    context="Show your work",
+    playbook=playbook
+)
+# View traces at https://www.comet.com/opik or your local Opik instance
+```
+
+#### Graceful Degradation
+If Opik is not installed or configured, ACE continues to work normally without tracing. No code changes needed.
+
 ---
 
 ## Documentation
@@ -188,6 +245,7 @@ client = LiteLLMClient(
 - [API Reference](docs/API_REFERENCE.md) - Complete API documentation
 - [Examples](examples/) - Ready-to-run code examples
 - [Prompt Engineering](docs/PROMPT_ENGINEERING.md) - Advanced prompt techniques
+- [Changelog](CHANGELOG.md) - See recent changes
 
 ---
 
