@@ -15,13 +15,15 @@ Agentic Context Engine learns from your agent's successes and failures. Just plu
 
 Star ⭐️ this repo if you find it useful!
 
+---
+
 ## 🤖 LLM Quickstart
-Direct your favorite coding agent (Cursor, Claude, etc) to [Agents.md](Agents.md)
-Prompt away!
+1. Direct your favorite coding agent (Cursor, Claude Code, Codex, etc) to [Agents.md](Agents.md)
+2. Prompt away!
 
 ---
 
-## Quick Start
+## ✋ Quick Start
 
 ### 1. Install
 
@@ -192,6 +194,7 @@ client = LiteLLMClient(
 - [API Reference](docs/API_REFERENCE.md) - Complete API documentation
 - [Examples](examples/) - Ready-to-run code examples
 - [Prompt Engineering](docs/PROMPT_ENGINEERING.md) - Advanced prompt techniques
+- [Changelog](CHANGELOG.md) - See recent changes
 
 ---
 
