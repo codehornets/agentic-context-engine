@@ -15,6 +15,10 @@ Agentic Context Engine learns from your agent's successes and failures. Just plu
 
 Star ⭐️ this repo if you find it useful!
 
+## 🤖 LLM Quickstart
+Direct your favorite coding agent (Cursor, Claude, etc) to [Agents.md](Agents.md)
+Prompt away!
+
 ---
 
 ## Quick Start
