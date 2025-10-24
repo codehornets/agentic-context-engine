@@ -197,28 +197,45 @@ client = LiteLLMClient(
 )
 ```
 
-### Enterprise Observability with Opik
+### Observability with Opik
 
-ACE includes production-ready observability through [Opik](https://www.comet.com/site/products/opik/) integration:
+ACE includes built-in Opik integration for production monitoring and debugging.
 
-```python
-from ace.observability import configure_opik
+#### Quick Start
+```bash
+# Install with Opik support
+pip install ace-framework opik
 
-# Configure observability for your project
-configure_opik(
-    project_name="my-ace-project",
-    tags=["production", "experiment-v1"]
-)
-
-# All ACE operations are now automatically traced
-# View dashboards at https://www.comet.com/opik
+# Set your Opik API key (or use local deployment)
+export OPIK_API_KEY="your-api-key"
+export OPIK_PROJECT_NAME="ace-project"
 ```
 
-Features:
-- 🔍 **Automatic Tracing**: All role interactions traced automatically
-- 📊 **Performance Metrics**: Track bullet effectiveness and learning progress
-- 🎯 **Real-time Dashboards**: Monitor ACE learning in production
-- 🔄 **Playbook Analytics**: Understand which strategies work best
+#### What Gets Tracked
+When Opik is available, ACE automatically logs:
+- **Generator**: Input questions, reasoning, and final answers
+- **Reflector**: Error analysis and bullet classifications
+- **Curator**: Playbook updates and delta operations
+- **Playbook Evolution**: Changes to strategies over time
+
+#### Viewing Traces
+```python
+# Opik tracing is automatic - just run your ACE code normally
+from ace import Generator, Reflector, Curator, Playbook
+from ace.llm_providers import LiteLLMClient
+
+# All role interactions are automatically tracked
+generator = Generator(llm_client)
+output = generator.generate(
+    question="What is 2+2?",
+    context="Show your work",
+    playbook=playbook
+)
+# View traces at https://www.comet.com/opik or your local Opik instance
+```
+
+#### Graceful Degradation
+If Opik is not installed or configured, ACE continues to work normally without tracing. No code changes needed.
 
 ---
 
