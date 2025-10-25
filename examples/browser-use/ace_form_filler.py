@@ -101,11 +101,11 @@ ERROR: <reason>"""
                 llm=llm,
                 browser=browser,
                 max_actions_per_step=5,
-                max_steps=15,
+                max_steps=25,
             )
 
             # Run with timeout
-            history = await asyncio.wait_for(agent.run(), timeout=120.0)
+            history = await asyncio.wait_for(agent.run(), timeout=240.0)
 
             # Parse result
             output = history.final_result() if hasattr(history, "final_result") else ""
@@ -123,9 +123,19 @@ ERROR: <reason>"""
             }
 
         except asyncio.TimeoutError:
-            return {"status": "ERROR", "steps": 999, "error": "Timeout"}
+            # Get actual steps even on timeout - history should exist
+            try:
+                steps = history.number_of_steps() if 'history' in locals() and hasattr(history, "number_of_steps") else 0
+            except:
+                steps = 25  # max_steps if we can't determine
+            return {"status": "ERROR", "steps": steps, "error": "Timeout"}
         except Exception as e:
-            return {"status": "ERROR", "steps": 999, "error": str(e)}
+            # Get actual steps even on error - history might exist
+            try:
+                steps = history.number_of_steps() if 'history' in locals() and hasattr(history, "number_of_steps") else 0
+            except:
+                steps = 0
+            return {"status": "ERROR", "steps": steps, "error": str(e)}
         finally:
             if browser:
                 try:

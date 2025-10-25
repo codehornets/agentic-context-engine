@@ -65,22 +65,27 @@ class DomainCheckEnvironment(TaskEnvironment):
                 "correct": correct,
                 "efficient": efficient,
                 "steps": result['steps'],
-                "status": result['status']
+                "status": result['status'],
+                "attempt": result.get('attempt', 1)
             }
         )
 
     async def _check_domain(self, domain: str, strategy: str):
-        """Execute browser automation to check domain."""
-        browser = None
-        try:
-            # Start browser
-            browser = Browser(headless=self.headless)
-            await browser.start()
+        """Execute browser automation to check domain with retry logic."""
+        max_retries = 3
+        last_error = None
 
-            # Create agent with the strategy
-            llm = ChatOpenAI(model=self.model, temperature=0.0)
+        for attempt in range(max_retries):
+            browser = None
+            try:
+                # Start browser
+                browser = Browser(headless=self.headless)
+                await browser.start()
 
-            task = f"""{strategy}
+                # Create agent with the strategy
+                llm = ChatOpenAI(model=self.model, temperature=0.0)
+
+                task = f"""{strategy}
 
 Check if the domain "{domain}" is available for registration.
 
@@ -91,47 +96,73 @@ AVAILABLE: {domain}
 TAKEN: {domain}
 ERROR: <reason>"""
 
-            agent = Agent(
-                task=task,
-                llm=llm,
-                browser=browser,
-                max_actions_per_step=5,
-                max_steps=12,
-            )
+                agent = Agent(
+                    task=task,
+                    llm=llm,
+                    browser=browser,
+                    max_actions_per_step=5,
+                    max_steps=20,
+                )
 
-            # Run with timeout
-            history = await asyncio.wait_for(agent.run(), timeout=90.0)
+                # Run with timeout
+                history = await asyncio.wait_for(agent.run(), timeout=180.0)
 
-            # Parse result
-            output = history.final_result() if hasattr(history, "final_result") else ""
-            steps = len(history.action_names()) if hasattr(history, "action_names") and history.action_names() else 0
+                # Parse result
+                output = history.final_result() if hasattr(history, "final_result") else ""
+                steps = len(history.action_names()) if hasattr(history, "action_names") and history.action_names() else 0
 
-            # Determine status
-            status = "ERROR"
-            output_upper = output.upper()
-            domain_upper = domain.upper()
+                # Determine status
+                status = "ERROR"
+                output_upper = output.upper()
+                domain_upper = domain.upper()
 
-            if f"AVAILABLE: {domain_upper}" in output_upper:
-                status = "AVAILABLE"
-            elif f"TAKEN: {domain_upper}" in output_upper:
-                status = "TAKEN"
+                if f"AVAILABLE: {domain_upper}" in output_upper:
+                    status = "AVAILABLE"
+                elif f"TAKEN: {domain_upper}" in output_upper:
+                    status = "TAKEN"
 
-            return {
-                "status": status,
-                "steps": steps,
-                "output": output
-            }
+                # If successful, return immediately
+                if status != "ERROR":
+                    return {
+                        "status": status,
+                        "steps": steps,
+                        "output": output,
+                        "attempt": attempt + 1
+                    }
 
-        except asyncio.TimeoutError:
-            return {"status": "ERROR", "steps": 999, "error": "Timeout"}
-        except Exception as e:
-            return {"status": "ERROR", "steps": 999, "error": str(e)}
-        finally:
-            if browser:
+                # Store error for potential retry
+                last_error = f"Failed to get valid result: {output}"
+
+            except asyncio.TimeoutError:
+                # Get actual steps even on timeout
                 try:
-                    await browser.stop()
+                    steps = history.number_of_steps() if 'history' in locals() and hasattr(history, "number_of_steps") else 0
                 except:
-                    pass
+                    steps = 20  # max_steps if we can't determine
+                last_error = f"Timeout on attempt {attempt + 1}"
+
+            except Exception as e:
+                # Get actual steps even on error
+                try:
+                    steps = history.number_of_steps() if 'history' in locals() and hasattr(history, "number_of_steps") else 0
+                except:
+                    steps = 0
+                last_error = f"Error on attempt {attempt + 1}: {str(e)}"
+
+            finally:
+                if browser:
+                    try:
+                        await browser.stop()
+                    except:
+                        pass
+
+        # All retries failed
+        return {
+            "status": "ERROR",
+            "steps": steps if 'steps' in locals() else 0,
+            "error": f"Failed after {max_retries} attempts. Last error: {last_error}",
+            "attempt": max_retries
+        }
 
 
 def get_test_domains() -> List[str]:
@@ -203,8 +234,9 @@ def main():
         status = metrics.get('status', 'UNKNOWN')
         steps = metrics.get('steps', 0)
         correct = metrics.get('correct', False)
+        attempt = metrics.get('attempt', 1)
 
-        print(f"[{i}] {domain}: {status} ({'✓' if correct else '✗'}) - {steps} steps")
+        print(f"[{i}] {domain}: {status} ({'✓' if correct else '✗'}) - {steps} steps (attempt {attempt})")
 
     # Summary
     successful = sum(1 for r in results if r.environment_result.metrics.get('correct', False))
