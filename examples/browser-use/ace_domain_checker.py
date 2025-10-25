@@ -84,8 +84,7 @@ class DomainCheckEnvironment(TaskEnvironment):
 
 Check if the domain "{domain}" is available for registration.
 
-Use domain lookup websites. Avoid sites with CAPTCHAs (like GoDaddy, Namecheap).
-Good sites: who.is, instantdomainsearch.com, domainr.com, whois.com
+Use domain lookup websites. Avoid sites with CAPTCHAs.
 
 Output format (exactly one of these):
 AVAILABLE: {domain}
